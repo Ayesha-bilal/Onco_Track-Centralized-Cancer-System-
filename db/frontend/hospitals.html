@@ -1,0 +1,319 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css">
+    <title>Hospitals Management</title>
+
+    <style>
+      body {
+        font-family: Arial;
+        margin: 20px;
+        background: #f4f4f4;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      .box {
+        background: white;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      input {
+        padding: 8px;
+        margin: 5px;
+      }
+
+      button {
+        padding: 8px 12px;
+        background:  rgb(34, 101, 121);;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      .update {
+        background: blue;
+      }
+
+      .delete {
+        background: red;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+
+      th {
+        background: #333;
+        color: white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script src="navbar.js"></script>
+
+    <h2>Hospital Management System</h2>
+
+    <div class="box">
+      <h3>Search Hospital</h3>
+
+      <input id="searchHospital" placeholder="Hospital Name / City / ID" />
+
+      <button onclick="searchHospital()">Search</button>
+
+      <button onclick="loadHospitals()">Show All</button>
+
+      <h3>Add Hospital</h3>
+
+      <input id="name" placeholder="Hospital Name" />
+
+      <input id="city" placeholder="City" />
+
+      <input id="province" placeholder="Province" />
+
+      <input id="contact" placeholder="Contact" />
+
+      <input id="email" placeholder="Email" />
+
+      <input id="license" placeholder="License Number" />
+
+      <button onclick="addHospital()">Add Hospital</button>
+    </div>
+
+    <div class="box" id="updateBox" style="display: none">
+      <h3>Update Hospital</h3>
+
+      <input id="updateName" placeholder="New Name" />
+
+      <input id="updateCity" placeholder="New City" />
+
+      <input id="updateProvince" placeholder="New Province" />
+
+      <input id="updateContact" placeholder="New Contact" />
+
+      <input id="updateEmail" placeholder="New Email" />
+
+      <button onclick="saveUpdate()">Save Update</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+
+          <th>Name</th>
+
+          <th>City</th>
+
+          <th>Province</th>
+
+          <th>Contact</th>
+
+          <th>Email</th>
+
+          <th>License</th>
+
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody id="tableData"></tbody>
+    </table>
+
+    <script>
+      const API = "http://localhost:5000/hospitals";
+
+      let selectedHospital = null;
+
+      // LOAD
+
+      async function loadHospitals() {
+        const res = await fetch(API);
+
+        const data = await res.json();
+
+        displayHospitals(data);
+      }
+
+      // DISPLAY
+
+      function displayHospitals(data) {
+        let rows = "";
+
+        data.forEach((h) => {
+          rows += `
+
+
+<tr>
+
+
+<td>${h.hospital_id}</td>
+
+<td>${h.hospital_name}</td>
+
+<td>${h.city}</td>
+
+<td>${h.province}</td>
+
+<td>${h.contact}</td>
+
+<td>${h.email}</td>
+
+<td>${h.license_number}</td>
+
+
+<td>
+
+
+<button class="update"
+
+onclick="updateHospital(${h.hospital_id})">
+
+Update
+
+</button>
+
+
+
+<button class="delete"
+
+onclick="deleteHospital(${h.hospital_id})">
+
+Delete
+
+</button>
+
+
+</td>
+
+
+</tr>
+
+
+
+`;
+        });
+
+        document.getElementById("tableData").innerHTML = rows;
+      }
+
+      // ADD
+
+      async function addHospital() {
+        const hospital = {
+          hospital_name: document.getElementById("name").value,
+
+          city: document.getElementById("city").value,
+
+          province: document.getElementById("province").value,
+
+          contact: document.getElementById("contact").value,
+
+          email: document.getElementById("email").value,
+
+          license_number: document.getElementById("license").value,
+        };
+
+        await fetch(API, {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(hospital),
+        });
+
+        alert("Hospital Added");
+
+        // clear
+
+        document.querySelectorAll("input").forEach((x) => (x.value = ""));
+
+        loadHospitals();
+      }
+
+      // SEARCH
+
+      async function searchHospital() {
+        let value = document.getElementById("searchHospital").value;
+
+        const res = await fetch(API + "/search/" + encodeURIComponent(value));
+
+        const data = await res.json();
+
+        displayHospitals(data);
+
+        document.getElementById("searchHospital").value = "";
+      }
+
+      // DELETE
+
+      async function deleteHospital(id) {
+        await fetch(API + "/" + id, {
+          method: "DELETE",
+        });
+
+        alert("Hospital Deleted");
+
+        loadHospitals();
+      }
+
+      // OPEN UPDATE
+
+      function updateHospital(id) {
+        selectedHospital = id;
+
+        document.getElementById("updateBox").style.display = "block";
+      }
+
+      // SAVE UPDATE
+
+      async function saveUpdate() {
+        await fetch(API + "/" + selectedHospital, {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            hospital_name: document.getElementById("updateName").value,
+
+            city: document.getElementById("updateCity").value,
+
+            province: document.getElementById("updateProvince").value,
+
+            contact: document.getElementById("updateContact").value,
+
+            email: document.getElementById("updateEmail").value,
+          }),
+        });
+
+        document
+          .querySelectorAll("#updateBox input")
+          .forEach((x) => (x.value = ""));
+
+        document.getElementById("updateBox").style.display = "none";
+
+        alert("Hospital Updated");
+
+        loadHospitals();
+      }
+    </script>
+    </div>
+  </body>
+</html>

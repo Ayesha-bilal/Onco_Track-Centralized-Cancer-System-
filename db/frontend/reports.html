@@ -1,0 +1,619 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css">
+    <title>OncoTrack Reports</title>
+
+    <script src="navbar.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+      body {
+        font-family: Arial;
+        background: #f4f4f4;
+        padding: 20px;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      .box {
+        background: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+      }
+
+      button {
+        background:  rgb(34, 101, 121);;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+
+      input {
+        padding: 10px;
+        margin: 5px;
+      }
+
+      canvas {
+        background: white;
+        padding: 10px;
+      }
+
+      .card {
+        font-size: 35px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>OncoTrack Reports Dashboard</h2>
+
+    <div class="box">
+      <h3>Total Registered Patients</h3>
+
+      <div class="card" id="totalPatients">0</div>
+    </div>
+
+    <div class="box">
+      <h3>Patients By City</h3>
+
+      <canvas id="cityChart"></canvas>
+    </div>
+
+    <div class="box">
+      <h3>Cancer Type Distribution</h3>
+
+      <canvas id="cancerChart"></canvas>
+    </div>
+
+    <div class="box">
+      <h3>Treatment Status</h3>
+
+      <canvas id="treatmentChart"></canvas>
+    </div>
+
+    <div class="box">
+      <h3>Download Complete Patient Report</h3>
+
+      <input id="patientID" placeholder="Enter Patient ID" />
+
+      <button onclick="downloadPatientReport()">Generate PDF</button>
+    </div>
+
+    <div class="box">
+      <button onclick="downloadOverallPDF()">
+        Download Overall Report PDF
+      </button>
+    </div>
+
+    <script>
+      const API = "http://localhost:5000/reports";
+
+      let totalPatients = 0;
+
+      // LOAD ALL REPORTS
+
+      async function loadReports() {
+        // TOTAL PATIENTS
+
+        let p = await fetch(API + "/patients");
+
+        let pdata = await p.json();
+
+        totalPatients = pdata.count;
+
+        document.getElementById("totalPatients").innerHTML = pdata.count;
+
+        // CITY CHART
+
+        let city = await fetch(API + "/city");
+
+        let cityData = await city.json();
+
+        new Chart(
+          document.getElementById("cityChart"),
+
+          {
+            type: "bar",
+
+            data: {
+              labels: cityData.map((x) => x.city),
+
+              datasets: [
+                {
+                  label: "Patients",
+
+                  data: cityData.map((x) => x.total),
+                },
+              ],
+            },
+          },
+        );
+
+        // CANCER CHART
+
+        let cancer = await fetch(API + "/cancer");
+
+        let cancerData = await cancer.json();
+
+        new Chart(
+          document.getElementById("cancerChart"),
+
+          {
+            type: "pie",
+
+            data: {
+              labels: cancerData.map((x) => x.cancer_type),
+
+              datasets: [
+                {
+                  data: cancerData.map((x) => x.total),
+                },
+              ],
+            },
+          },
+        );
+
+        // TREATMENT CHART
+
+        let treatment = await fetch(API + "/treatment");
+
+        let treatmentData = await treatment.json();
+
+        new Chart(
+          document.getElementById("treatmentChart"),
+
+          {
+            type: "pie",
+
+            data: {
+              labels: treatmentData.map((x) => x.status),
+
+              datasets: [
+                {
+                  data: treatmentData.map((x) => x.total),
+                },
+              ],
+            },
+          },
+        );
+      }
+
+      loadReports();
+
+      // OVERALL PDF
+      async function downloadOverallPDF() {
+        const { jsPDF } = window.jspdf;
+
+        let pdf = new jsPDF();
+
+        let y = 20;
+
+        // TITLE
+
+        pdf.setFontSize(18);
+
+        pdf.text(
+          "ONCOTRACK SYSTEM REPORT",
+
+          40,
+
+          y,
+        );
+
+        y += 12;
+
+        pdf.setFontSize(12);
+
+        pdf.text(
+          "Centralized Cancer Patient Record System",
+
+          35,
+
+          y,
+        );
+
+        y += 20;
+
+        // TOTAL PATIENTS
+
+        pdf.setFontSize(14);
+
+        pdf.text(
+          "System Overview",
+
+          20,
+
+          y,
+        );
+
+        y += 10;
+
+        pdf.setFontSize(12);
+
+        pdf.text(
+          "Total Registered Patients: " + totalPatients,
+
+          20,
+
+          y,
+        );
+
+        y += 20;
+
+        // ADD CITY CHART
+
+        let cityCanvas = document.getElementById("cityChart");
+
+        let cityImage = cityCanvas.toDataURL("image/png");
+
+        pdf.text(
+          "Patients Distribution By City",
+
+          20,
+
+          y,
+        );
+
+        y += 10;
+
+        pdf.addImage(
+          cityImage,
+
+          "PNG",
+
+          20,
+
+          y,
+
+          170,
+
+          80,
+        );
+
+        y += 95;
+
+        // NEW PAGE
+
+        pdf.addPage();
+
+        y = 20;
+
+        // CANCER CHART
+
+        pdf.setFontSize(14);
+
+        pdf.text(
+          "Cancer Type Distribution",
+
+          20,
+
+          y,
+        );
+
+        y += 10;
+
+        let cancerCanvas = document.getElementById("cancerChart");
+
+        let cancerImage = cancerCanvas.toDataURL("image/png");
+
+        pdf.addImage(
+          cancerImage,
+
+          "PNG",
+
+          30,
+
+          y,
+
+          150,
+
+          90,
+        );
+
+        y += 110;
+
+        // TREATMENT CHART
+
+        pdf.text(
+          "Treatment Status Analysis",
+
+          20,
+
+          y,
+        );
+
+        y += 10;
+
+        let treatmentCanvas = document.getElementById("treatmentChart");
+
+        let treatmentImage = treatmentCanvas.toDataURL("image/png");
+
+        pdf.addImage(
+          treatmentImage,
+
+          "PNG",
+
+          30,
+
+          y,
+
+          150,
+
+          90,
+        );
+
+        y += 110;
+
+        pdf.setFontSize(10);
+
+        pdf.text(
+          "Generated by OncoTrack System",
+
+          20,
+
+          280,
+        );
+
+        pdf.save("OncoTrack_Analytics_Report.pdf");
+      }
+      // INDIVIDUAL PATIENT PDF
+
+      async function downloadPatientReport() {
+        let id = document.getElementById("patientID").value;
+
+        if (id == "") {
+          alert("Please enter Patient ID");
+
+          return;
+        }
+
+        const res = await fetch("http://localhost:5000/reports/patient/" + id);
+
+        const data = await res.json();
+
+        if (!data.patient) {
+          alert("Patient does not exist");
+
+          return;
+        }
+
+        const { jsPDF } = window.jspdf;
+
+        let pdf = new jsPDF();
+
+        let y = 20;
+
+        // HEADER
+
+        pdf.setFontSize(18);
+
+        pdf.text(
+          "ONCOTRACK",
+
+          85,
+
+          y,
+        );
+
+        y += 10;
+
+        pdf.setFontSize(12);
+
+        pdf.text(
+          "Centralized Cancer Patient Record System",
+
+          40,
+
+          y,
+        );
+
+        y += 15;
+
+        pdf.text(
+          "PATIENT MEDICAL REPORT",
+
+          65,
+
+          y,
+        );
+
+        y += 20;
+
+        // PATIENT DETAILS
+
+        pdf.setFontSize(14);
+
+        pdf.text(
+          "Patient Information",
+
+          20,
+
+          y,
+        );
+
+        y += 10;
+
+        pdf.setFontSize(11);
+
+        pdf.text(
+          "Patient ID: " + data.patient.patient_id,
+
+          20,
+
+          y,
+        );
+
+        y += 7;
+
+        pdf.text(
+          "CNIC: " + data.patient.cnic,
+
+          20,
+
+          y,
+        );
+
+        y += 7;
+
+        pdf.text(
+          "Name: " + data.patient.name,
+
+          20,
+
+          y,
+        );
+
+        y += 7;
+
+        pdf.text(
+          "Gender: " + data.patient.gender,
+
+          20,
+
+          y,
+        );
+
+        y += 7;
+
+        pdf.text(
+          "City: " + data.patient.city,
+
+          20,
+
+          y,
+        );
+
+        y += 15;
+
+        // DIAGNOSIS
+
+        pdf.setFontSize(14);
+
+        pdf.text(
+          "Diagnosis History",
+
+          20,
+
+          y,
+        );
+
+        y += 10;
+
+        pdf.setFontSize(11);
+
+        data.diagnosis.forEach((d, i) => {
+          pdf.text(
+            "Diagnosis " + (i + 1),
+
+            20,
+
+            y,
+          );
+
+          y += 7;
+
+          pdf.text(
+            "Cancer: " + d.cancer_type,
+
+            25,
+
+            y,
+          );
+
+          y += 7;
+
+          pdf.text(
+            "Stage: " + d.cancer_stage,
+
+            25,
+
+            y,
+          );
+
+          y += 7;
+
+          pdf.text(
+            "Organ: " + d.affected_organ,
+
+            25,
+
+            y,
+          );
+
+          y += 12;
+        });
+
+        // TREATMENT
+
+        pdf.setFontSize(14);
+
+        pdf.text(
+          "Treatment History",
+
+          20,
+
+          y,
+        );
+
+        y += 10;
+
+        pdf.setFontSize(11);
+
+        data.treatment.forEach((t, i) => {
+          pdf.text(
+            "Treatment " + (i + 1),
+
+            20,
+
+            y,
+          );
+
+          y += 7;
+
+          pdf.text(
+            "Type: " + t.treatment_type,
+
+            25,
+
+            y,
+          );
+
+          y += 7;
+
+          pdf.text(
+            "Status: " + t.status,
+
+            25,
+
+            y,
+          );
+
+          y += 12;
+        });
+
+        pdf.text(
+          "Generated by OncoTrack System",
+
+          20,
+
+          280,
+        );
+
+        pdf.save(data.patient.name + "_Medical_Report.pdf");
+
+        document.getElementById("patientID").value = "";
+      }
+    </script>
+    </div>
+  </body>
+</html>

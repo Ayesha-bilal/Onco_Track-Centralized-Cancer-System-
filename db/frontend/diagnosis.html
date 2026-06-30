@@ -1,0 +1,312 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css">
+    <title>Diagnosis Management</title>
+
+    <style>
+      body {
+        font-family: Arial;
+        margin: 20px;
+        background: #f4f4f4;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      .box {
+        background: white;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      input {
+        padding: 8px;
+        margin: 5px;
+      }
+
+      button {
+        padding: 8px 12px;
+        background: rgb(0, 98, 128);
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      .update {
+        background: blue;
+      }
+
+      .delete {
+        background: red;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+
+      th {
+        background: #333;
+        color: white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script src="navbar.js"></script>
+
+    <h2>Diagnosis Management System</h2>
+
+    <div class="box">
+      <h3>Search Diagnosis</h3>
+
+      <input
+        id="searchDiagnosis"
+        placeholder="Cancer type / Organ / Patient ID"
+      />
+
+      <button onclick="searchDiagnosis()">Search</button>
+
+      <button onclick="loadDiagnosis()">Show All</button>
+
+      <h3>Add Diagnosis</h3>
+
+      <input id="patient" placeholder="Patient ID" />
+
+      <input id="doctor" placeholder="Doctor ID" />
+
+      <input id="hospital" placeholder="Hospital ID" />
+
+      <input id="type" placeholder="Cancer Type" />
+
+      <input id="stage" placeholder="Stage" />
+
+      <input id="organ" placeholder="Affected Organ" />
+
+      <input id="date" placeholder="Date" />
+
+      <input id="notes" placeholder="Notes" />
+
+      <button onclick="addDiagnosis()">Add Diagnosis</button>
+    </div>
+
+    <div class="box" id="updateBox" style="display: none">
+      <h3>Update Diagnosis</h3>
+
+      <input id="updateType" placeholder="New Cancer Type" />
+
+      <input id="updateStage" placeholder="New Stage" />
+
+      <input id="updateOrgan" placeholder="New Organ" />
+
+      <input id="updateNotes" placeholder="New Notes" />
+
+      <button onclick="saveUpdate()">Save Update</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+
+          <th>Patient</th>
+
+          <th>Doctor</th>
+
+          <th>Hospital</th>
+
+          <th>Cancer</th>
+
+          <th>Stage</th>
+
+          <th>Organ</th>
+
+          <th>Date</th>
+
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody id="tableData"></tbody>
+    </table>
+
+    <script>
+      const API = "http://localhost:5000/diagnosis";
+
+      let selectedDiagnosis = null;
+
+      async function loadDiagnosis() {
+        const res = await fetch(API);
+
+        const data = await res.json();
+
+        displayDiagnosis(data);
+      }
+
+      function displayDiagnosis(data) {
+        let rows = "";
+
+        data.forEach((d) => {
+          rows += `
+
+<tr>
+
+
+<td>${d.diagnosis_id}</td>
+
+<td>${d.patient_id}</td>
+
+<td>${d.doctor_id}</td>
+
+<td>${d.hospital_id}</td>
+
+<td>${d.cancer_type}</td>
+
+<td>${d.cancer_stage}</td>
+
+<td>${d.affected_organ}</td>
+
+<td>${d.diagnosis_date}</td>
+
+
+<td>
+
+
+<button class="update"
+
+onclick="updateDiagnosis(${d.diagnosis_id})">
+
+Update
+
+</button>
+
+
+
+<button class="delete"
+
+onclick="deleteDiagnosis(${d.diagnosis_id})">
+
+Delete
+
+</button>
+
+
+</td>
+
+
+</tr>
+
+
+`;
+        });
+
+        document.getElementById("tableData").innerHTML = rows;
+      }
+
+      async function addDiagnosis() {
+        const obj = {
+          patient_id: document.getElementById("patient").value,
+
+          doctor_id: document.getElementById("doctor").value,
+
+          hospital_id: document.getElementById("hospital").value,
+
+          cancer_type: document.getElementById("type").value,
+
+          cancer_stage: document.getElementById("stage").value,
+
+          affected_organ: document.getElementById("organ").value,
+
+          diagnosis_date: document.getElementById("date").value,
+
+          notes: document.getElementById("notes").value,
+        };
+
+        await fetch(API, {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(obj),
+        });
+
+        alert("Diagnosis Added");
+
+        document.querySelectorAll("input").forEach((x) => (x.value = ""));
+
+        loadDiagnosis();
+      }
+
+      async function searchDiagnosis() {
+        let value = document.getElementById("searchDiagnosis").value;
+
+        const res = await fetch(API + "/search/" + encodeURIComponent(value));
+
+        const data = await res.json();
+
+        displayDiagnosis(data);
+
+        document.getElementById("searchDiagnosis").value = "";
+      }
+
+      async function deleteDiagnosis(id) {
+        await fetch(API + "/" + id, {
+          method: "DELETE",
+        });
+
+        alert("Deleted");
+
+        loadDiagnosis();
+      }
+
+      function updateDiagnosis(id) {
+        selectedDiagnosis = id;
+
+        document.getElementById("updateBox").style.display = "block";
+      }
+
+      async function saveUpdate() {
+        await fetch(API + "/" + selectedDiagnosis, {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            cancer_type: document.getElementById("updateType").value,
+
+            cancer_stage: document.getElementById("updateStage").value,
+
+            affected_organ: document.getElementById("updateOrgan").value,
+
+            notes: document.getElementById("updateNotes").value,
+          }),
+        });
+
+        document
+          .querySelectorAll("#updateBox input")
+          .forEach((x) => (x.value = ""));
+
+        document.getElementById("updateBox").style.display = "none";
+
+        alert("Diagnosis Updated");
+
+        loadDiagnosis();
+      }
+    </script>
+    </div>
+  </body>
+</html>

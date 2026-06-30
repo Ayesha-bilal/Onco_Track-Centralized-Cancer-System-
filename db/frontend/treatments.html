@@ -1,0 +1,321 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css">
+    <title>Treatment Management</title>
+
+    <style>
+      body {
+        font-family: Arial;
+        margin: 20px;
+        background: #f4f4f4;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      .box {
+        background: white;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      input {
+        padding: 8px;
+        margin: 5px;
+      }
+
+      button {
+        padding: 8px 12px;
+        background:  rgb(34, 101, 121);;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      .update {
+        background: blue;
+      }
+
+      .delete {
+        background: red;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+
+      th {
+        background: #333;
+        color: white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script src="navbar.js"></script>
+
+    <h2>Treatment Management System</h2>
+
+    <div class="box">
+      <h3>Search Treatment</h3>
+
+      <input id="searchTreatment" placeholder="Treatment type / Status / ID" />
+
+      <button onclick="searchTreatment()">Search</button>
+
+      <button onclick="loadTreatments()">Show All</button>
+
+      <h3>Add Treatment</h3>
+
+      <input id="diagnosis" placeholder="Diagnosis ID" />
+
+      <input id="doctor" placeholder="Doctor ID" />
+
+      <input id="type" placeholder="Treatment Type" />
+
+      <input id="start" placeholder="Start Date" />
+
+      <input id="end" placeholder="End Date" />
+
+      <input id="status" placeholder="Status" />
+
+      <button onclick="addTreatment()">Add Treatment</button>
+    </div>
+
+    <div class="box" id="updateBox" style="display: none">
+      <h3>Update Treatment</h3>
+
+      <input id="updateType" placeholder="New Treatment Type" />
+
+      <input id="updateStart" placeholder="New Start Date" />
+
+      <input id="updateEnd" placeholder="New End Date" />
+
+      <input id="updateStatus" placeholder="New Status" />
+
+      <button onclick="saveUpdate()">Save Update</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+
+          <th>Diagnosis ID</th>
+
+          <th>Doctor ID</th>
+
+          <th>Type</th>
+
+          <th>Start</th>
+
+          <th>End</th>
+
+          <th>Status</th>
+
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody id="tableData"></tbody>
+    </table>
+
+    <script>
+      const API = "http://localhost:5000/treatments";
+
+      let selectedTreatment = null;
+
+      // LOAD
+
+      async function loadTreatments() {
+        const res = await fetch(API);
+
+        const data = await res.json();
+
+        displayTreatments(data);
+      }
+
+      // DISPLAY
+
+      function displayTreatments(data) {
+        let rows = "";
+
+        data.forEach((t) => {
+          rows += `
+
+<tr>
+
+
+<td>${t.treatment_id}</td>
+
+
+<td>${t.diagnosis_id}</td>
+
+
+<td>${t.doctor_id}</td>
+
+
+<td>${t.treatment_type}</td>
+
+
+<td>${t.start_date}</td>
+
+
+<td>${t.end_date}</td>
+
+
+<td>${t.status}</td>
+
+
+<td>
+
+
+
+<button class="update"
+
+onclick="updateTreatment(${t.treatment_id})">
+
+Update
+
+</button>
+
+
+
+
+<button class="delete"
+
+onclick="deleteTreatment(${t.treatment_id})">
+
+Delete
+
+</button>
+
+
+
+</td>
+
+
+</tr>
+
+
+`;
+        });
+
+        document.getElementById("tableData").innerHTML = rows;
+      }
+
+      // ADD
+
+      async function addTreatment() {
+        const treatment = {
+          diagnosis_id: document.getElementById("diagnosis").value,
+
+          doctor_id: document.getElementById("doctor").value,
+
+          treatment_type: document.getElementById("type").value,
+
+          start_date: document.getElementById("start").value,
+
+          end_date: document.getElementById("end").value,
+
+          status: document.getElementById("status").value,
+        };
+
+        await fetch(API, {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(treatment),
+        });
+
+        alert("Treatment Added");
+
+        document.querySelectorAll("input").forEach((x) => (x.value = ""));
+
+        loadTreatments();
+      }
+
+      // SEARCH
+
+      async function searchTreatment() {
+        let value = document.getElementById("searchTreatment").value;
+
+        const res = await fetch(API + "/search/" + encodeURIComponent(value));
+
+        const data = await res.json();
+
+        displayTreatments(data);
+
+        document.getElementById("searchTreatment").value = "";
+      }
+
+      // DELETE
+
+      async function deleteTreatment(id) {
+        await fetch(API + "/" + id, {
+          method: "DELETE",
+        });
+
+        alert("Treatment Deleted");
+
+        loadTreatments();
+      }
+
+      // OPEN UPDATE
+
+      function updateTreatment(id) {
+        selectedTreatment = id;
+
+        document.getElementById("updateBox").style.display = "block";
+      }
+
+      // SAVE UPDATE
+
+      async function saveUpdate() {
+        await fetch(API + "/" + selectedTreatment, {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            treatment_type: document.getElementById("updateType").value,
+
+            start_date: document.getElementById("updateStart").value,
+
+            end_date: document.getElementById("updateEnd").value,
+
+            status: document.getElementById("updateStatus").value,
+          }),
+        });
+
+        document
+          .querySelectorAll("#updateBox input")
+
+          .forEach((x) => (x.value = ""));
+
+        document.getElementById("updateBox").style.display = "none";
+
+        alert("Treatment Updated");
+
+        loadTreatments();
+      }
+    </script>
+    </div>
+  </body>
+</html>

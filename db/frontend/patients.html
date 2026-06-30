@@ -1,0 +1,314 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css">
+    <title>Patients Dashboard</title>
+
+    <style>
+      body {
+        font-family: Arial;
+        margin: 20px;
+        background: #f4f4f4;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      .form-box {
+        background: white;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+      }
+
+      input {
+        margin: 5px;
+        padding: 8px;
+      }
+
+      button {
+        padding: 8px 12px;
+        cursor: pointer;
+        background:  rgb(34, 101, 121);;
+        color: white;
+        border: none;
+        border-radius: 5px;
+      }
+
+      .update {
+        background: blue;
+      }
+
+      .delete {
+        background: red;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+
+      th {
+        background: #333;
+        color: white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script src="navbar.js"></script>
+
+    <h2>Patient Management System</h2>
+
+    <div class="form-box">
+      <h3>Search Patient</h3>
+
+      <input id="searchName" placeholder="Enter CNIC or Name" />
+
+      <button onclick="searchPatient()">Search</button>
+
+      <button onclick="loadPatients()">Show All</button>
+
+      <h3>Add Patient</h3>
+
+      <input id="cnic" placeholder="CNIC" />
+
+      <input id="name" placeholder="Name" />
+
+      <input id="city" placeholder="City" />
+
+      <input id="phone" placeholder="Phone" />
+
+      <button onclick="addPatient()">Add Patient</button>
+    </div>
+
+    <div class="form-box" id="updateBox" style="display: none">
+      <h3>Update Patient</h3>
+
+      <input id="updateName" placeholder="New Name" />
+
+      <input id="updateCity" placeholder="New City" />
+
+      <input id="updatePhone" placeholder="New Phone" />
+
+      <button onclick="saveUpdate()">Save Update</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+
+          <th>CNIC</th>
+
+          <th>Name</th>
+
+          <th>City</th>
+
+          <th>Phone</th>
+
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody id="tableData"></tbody>
+    </table>
+
+    <script>
+      const API = "http://localhost:5000/patients";
+
+      // SHOW ALL
+
+      async function loadPatients() {
+        const res = await fetch(API);
+
+        const data = await res.json();
+
+        displayPatients(data);
+      }
+
+      // DISPLAY TABLE
+
+      function displayPatients(data) {
+        let rows = "";
+
+        data.forEach((p) => {
+          rows += `
+
+
+<tr>
+
+<td>${p.patient_id}</td>
+
+<td>${p.cnic}</td>
+
+<td>${p.name}</td>
+
+<td>${p.city}</td>
+
+<td>${p.phone}</td>
+
+
+<td>
+
+
+<button class="update"
+
+onclick="updatePatient(${p.patient_id})">
+
+Update
+
+</button>
+
+
+
+<button class="delete"
+
+onclick="deletePatient(${p.patient_id})">
+
+Delete
+
+</button>
+
+
+</td>
+
+
+</tr>
+
+
+`;
+        });
+
+        document.getElementById("tableData").innerHTML = rows;
+      }
+
+      // SEARCH
+
+      async function searchPatient() {
+        const value = document.getElementById("searchName").value;
+
+        if (value == "") {
+          alert("Enter CNIC or Name");
+
+          return;
+        }
+
+        const res = await fetch(
+          "http://localhost:5000/patients/search/" + encodeURIComponent(value),
+        );
+
+        const data = await res.json();
+
+        displayPatients(data);
+        document.getElementById("searchName").value = "";
+      }
+
+      // ADD
+
+      async function addPatient() {
+        const patient = {
+          cnic: document.getElementById("cnic").value,
+
+          name: document.getElementById("name").value,
+
+          city: document.getElementById("city").value,
+
+          phone: document.getElementById("phone").value,
+
+          dob: "2000-01-01",
+
+          gender: "Male",
+
+          province: "Sindh",
+
+          blood_group: "A+",
+
+          family_history: false,
+
+          smoking_history: false,
+        };
+
+        await fetch(API, {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(patient),
+        });
+
+        alert("Patient Added");
+        document.getElementById("cnic").value = "";
+        document.getElementById("name").value = "";
+        document.getElementById("city").value = "";
+        document.getElementById("phone").value = "";
+
+        loadPatients();
+      }
+
+      // UPDATE
+
+      let selectedPatientId = null;
+
+      function updatePatient(id) {
+        selectedPatientId = id;
+
+        document.getElementById("updateBox").style.display = "block";
+      }
+
+      async function saveUpdate() {
+        let name = document.getElementById("updateName").value;
+
+        let city = document.getElementById("updateCity").value;
+
+        let phone = document.getElementById("updatePhone").value;
+
+        await fetch(API + "/" + selectedPatientId, {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            name: name,
+
+            city: city,
+
+            phone: phone,
+          }),
+        });
+
+        document.getElementById("updateBox").style.display = "none";
+
+        loadPatients();
+        document.getElementById("updateName").value = "";
+        document.getElementById("updateCity").value = "";
+        document.getElementById("updatePhone").value = "";
+      }
+
+      // DELETE
+
+      async function deletePatient(id) {
+        await fetch(API + "/" + id, {
+          method: "DELETE",
+        });
+
+        alert("Patient Deleted");
+
+        loadPatients();
+      }
+    </script>
+    </div>
+  </body>
+</html>
